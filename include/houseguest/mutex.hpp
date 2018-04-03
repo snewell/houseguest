@@ -3,6 +3,10 @@
 
 #include <mutex>
 
+#if __cplusplus == 201703L
+#include <shared_mutex>
+#endif
+
 namespace houseguest
 {
     template <typename MUTEX>
@@ -22,6 +26,18 @@ namespace houseguest
 
     template <typename MUTEX>
     using unique_lock_t = typename unique_lock<MUTEX>::type;
-}
+
+    template <typename MUTEX>
+    struct shared_lock
+#if __cplusplus == 201703L
+    {
+        using type = std::shared_lock<MUTEX>;
+    }
+#endif
+    ;
+
+    template <typename MUTEX>
+    using shared_lock_t = typename shared_lock<MUTEX>::type;
+} // namespace houseguest
 
 #endif

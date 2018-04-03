@@ -17,29 +17,34 @@ enable_testing()
 
 if(HOUSEGUEST_BUILD_TESTS)
     find_package(GTest REQUIRED)
+    function(create_test_std test_name std_version)
+        set(real_name "${test_name}-${std_version}")
+        add_executable(${real_name} ${ARGN})
+        target_link_libraries(${real_name} PUBLIC
+            houseguest
+        )
+        target_link_libraries(${real_name} PRIVATE
+            GTest::GTest
+            GTest::Main
+        )
+        set_target_properties(${real_name} PROPERTIES
+            CXX_EXTENSIONS OFF
+        )
+        target_compile_features(${real_name} PRIVATE
+            cxx_std_${std_version}
+        )
+        add_test(NAME ${real_name}
+            COMMAND ${real_name} "--gtest_output=xml:${CMAKE_CURRENT_BINARY_DIR}/${real_name}_results.xml"
+        )
+    endfunction()
     function(create_test test_name)
         foreach(std_version IN ITEMS 14 17)
-            set(real_name "${test_name}-${std_version}")
-            add_executable(${real_name} ${ARGN})
-            target_link_libraries(${real_name} PUBLIC
-                houseguest
-            )
-            target_link_libraries(${real_name} PRIVATE
-                GTest::GTest
-                GTest::Main
-            )
-            set_target_properties(${real_name} PROPERTIES
-                CXX_EXTENSIONS OFF
-            )
-            target_compile_features(${real_name} PRIVATE
-                cxx_std_${std_version}
-            )
-            add_test(NAME ${real_name}
-                COMMAND ${real_name} "--gtest_output=xml:${CMAKE_CURRENT_BINARY_DIR}/${real_name}_results.xml"
-            )
+            create_test_std(${test_name} ${std_version} ${ARGN})
         endforeach()
     endfunction()
 else()
+    function(create_test_std test_name std_version)
+    endfunction()
     function(create_test test_name)
     endfunction()
 endif()
@@ -53,6 +58,7 @@ target_include_directories(houseguest INTERFACE
 set(headers
     mutex.hpp
     synchronize.hpp
+    thread_safe_object.hpp
 )
 foreach(file IN LISTS headers)
     target_sources(houseguest INTERFACE
@@ -67,6 +73,9 @@ endforeach()
 
 create_test(synchronize_test
     synchronize_test.cpp
+)
+create_test_std(thread_safe_object_test 17
+    thread_safe_object_test.cpp
 )
 
 if(HOUSEGUEST_BUILD_DOCS)
