@@ -11,6 +11,7 @@ project("houseguest"
 include(GNUInstallDirs)
 
 option(HOUSEGUEST_BUILD_TESTS "Build houseguest's unit tests" ON)
+option(HOUSEGUEST_BUILD_DOCS  "Build houseguest's documentation" ON)
 
 enable_testing()
 
@@ -58,6 +59,27 @@ create_test(synchronize_test
     test_synchronize.cpp
 )
 
+if(HOUSEGUEST_BUILD_DOCS)
+    find_program(DOXYGEN "doxygen")
+    if(DOXYGEN)
+        find_program(DOT "dot")
+        if(DOT)
+            set(HAVE_DOT "YES")
+        else()
+            set(HAVE_DOT "NO")
+        endif()
+        configure_file(doxyfile.in "${CMAKE_CURRENT_BINARY_DIR}/doxyfile" @ONLY)
+
+        add_custom_target(docs)
+        add_custom_command(TARGET docs
+            COMMAND "${DOXYGEN}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        )
+    else()
+        message(WARNING "Couldn't find doxygen, disabling documentation")
+    endif()
+endif()
+
 install(TARGETS
         houseguest
     EXPORT HouseguestConfig
@@ -79,3 +101,10 @@ install(EXPORT
     DESTINATION "${CMAKE_INSTALL_DATADIR}/Houseguest/cmake"
     NAMESPACE Houseguest::
 )
+
+if(DOXYGEN)
+    install(DIRECTORY
+        "${CMAKE_CURRENT_BINARY_DIR}/doc/html"
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    )
+endif()
