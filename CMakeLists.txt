@@ -56,7 +56,7 @@ target_sources(houseguest INTERFACE
 )
 
 create_test(synchronize_test
-    test_synchronize.cpp
+    synchronize_test.cpp
 )
 
 if(HOUSEGUEST_BUILD_DOCS)
