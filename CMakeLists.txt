@@ -28,7 +28,10 @@ if(HOUSEGUEST_BUILD_TESTS)
                 GTest::Main
             )
             set_target_properties(${real_name} PROPERTIES
-                CXX_STANDARD ${std_version}
+                CXX_EXTENSIONS OFF
+            )
+            target_compile_features(${real_name} PRIVATE
+                cxx_std_${std_version}
             )
             add_test(NAME ${real_name}
                 COMMAND ${real_name} "--gtest_output=xml:${CMAKE_CURRENT_BINARY_DIR}/${real_name}_results.xml"
