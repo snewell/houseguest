@@ -15,6 +15,13 @@ TEST(Synchronize, simple_forward)
         m, [](std::mutex & inner) { ASSERT_FALSE(inner.try_lock()); }, m);
 }
 
+TEST(Synchronize, simple_return)
+{
+    std::mutex m;
+    auto ret = houseguest::synchronize(m, []() { return 12; });
+    ASSERT_EQ(12, ret);
+}
+
 TEST(Synchronize, unique)
 {
     std::mutex m;
@@ -34,6 +41,17 @@ TEST(Synchronize, unique_forward)
             ASSERT_FALSE(inner.try_lock());
         },
         m);
+}
+
+TEST(Synchronize, unique_return)
+{
+    std::mutex m;
+    auto ret = houseguest::synchronize_unique(
+        m, [](std::unique_lock<std::mutex> lock) {
+            (void)lock;
+            return 12;
+        });
+    ASSERT_EQ(12, ret);
 }
 
 TEST(Synchronize, make_synchronize)
@@ -63,6 +81,14 @@ TEST(Synchronize, make_synchronize_forward)
     auto called = false;
     sync_fn(m, called);
     ASSERT_TRUE(called);
+}
+
+TEST(Synchronize, make_synchronize_return)
+{
+    std::mutex m;
+    auto sync_fn = houseguest::make_synchronize(m, []() { return 12; });
+    auto ret = sync_fn();
+    ASSERT_EQ(12, ret);
 }
 
 TEST(Synchronize, make_synchronize_unique)
@@ -96,4 +122,16 @@ TEST(Synchronize, make_synchronize_unique_forward)
     auto called = false;
     sync_fn(m, called);
     ASSERT_TRUE(called);
+}
+
+TEST(Synchronize, make_synchronize_unique_return)
+{
+    std::mutex m;
+    auto sync_fn = houseguest::make_synchronize_unique(
+        m, [](std::unique_lock<std::mutex> lock) {
+            (void)lock;
+            return 12;
+        });
+    auto ret = sync_fn();
+    ASSERT_EQ(12, ret);
 }
