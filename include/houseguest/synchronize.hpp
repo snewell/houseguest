@@ -1,7 +1,7 @@
 #ifndef HOUSEGUEST_SYNCHRONIZE_HPP
 #define HOUSEGUEST_SYNCHRONIZE_HPP 1
 
-#include <mutex>
+#include <houseguest/mutex.hpp>
 
 /** \file
  *
@@ -36,7 +36,7 @@ namespace houseguest
     template <typename MUTEX, typename FN, typename... Ts>
     auto synchronize(MUTEX & m, FN && fn, Ts &&... ts)
     {
-        std::lock_guard<MUTEX> lock{m};
+        houseguest::lock_guard_t<MUTEX> lock{m};
         return fn(std::forward<Ts>(ts)...);
     }
 
@@ -67,7 +67,7 @@ namespace houseguest
     template <typename MUTEX, typename FN, typename... Ts>
     auto synchronize_unique(MUTEX & m, FN && fn, Ts &&... ts)
     {
-        std::unique_lock<MUTEX> lock{m};
+        houseguest::unique_lock_t<MUTEX> lock{m};
         return fn(std::move(lock), std::forward<Ts>(ts)...);
     }
 

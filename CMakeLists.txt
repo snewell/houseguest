@@ -50,10 +50,20 @@ target_include_directories(houseguest INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_sources(houseguest INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/houseguest/synchronize.hpp>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/houseguest/synchronize.hpp>
+set(headers
+    mutex.hpp
+    synchronize.hpp
 )
+foreach(file IN LISTS headers)
+    target_sources(houseguest INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/houseguest/${file}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/houseguest/${file}>
+    )
+    install(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/houseguest/${file}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/houseguest
+    )
+endforeach()
 
 create_test(synchronize_test
     synchronize_test.cpp
@@ -86,10 +96,6 @@ install(TARGETS
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/houseguest/synchronize.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/houseguest
 )
 export(TARGETS
         houseguest
