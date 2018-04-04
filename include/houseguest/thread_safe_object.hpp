@@ -5,57 +5,67 @@
 
 namespace houseguest
 {
+    template <typename T, typename MUTEX>
+    class write_handle
+    {
+    public:
+        using lock_type = houseguest::unique_lock_t<MUTEX>;
+
+        write_handle(T & t, lock_type lock)
+          : _t{t}
+          , _lock{std::move(lock)}
+        {
+        }
+
+        T & operator*() noexcept
+        {
+            return _t;
+        }
+
+        T * operator->() noexcept
+        {
+            return &_t;
+        }
+
+    private:
+        T & _t;
+        lock_type _lock;
+    };
+
+    template <typename T, typename MUTEX>
+    class read_handle
+    {
+    public:
+        using lock_type = houseguest::shared_lock_t<MUTEX>;
+
+        read_handle(T const & t, lock_type lock)
+          : _t{t}
+          , _lock{std::move(lock)}
+        {
+        }
+
+        T const & operator*() const noexcept
+        {
+            return _t;
+        }
+
+        T const * operator->() const noexcept
+        {
+            return &_t;
+        }
+
+    private:
+        T const & _t;
+        lock_type _lock;
+    };
+
     template <typename T, typename MUTEX = std::shared_mutex>
     class threadsafe_object
     {
     public:
-        class write_handle
-        {
-        public:
-            write_handle(T & t, houseguest::unique_lock_t<MUTEX> lock)
-              : _t{t}
-              , _lock{std::move(lock)}
-            {
-            }
+        using write_handle_type = write_handle<T, MUTEX>;
 
-            T & operator*() noexcept
-            {
-                return _t;
-            }
-
-            T * operator->() noexcept
-            {
-                return &_t;
-            }
-
-        private:
-            T & _t;
-            houseguest::unique_lock_t<MUTEX> _lock;
-        };
-
-        class read_handle
-        {
-        public:
-            read_handle(T const & t, houseguest::shared_lock_t<MUTEX> lock)
-              : _t{t}
-              , _lock{std::move(lock)}
-            {
-            }
-
-            T const & operator*() const noexcept
-            {
-                return _t;
-            }
-
-            T const * operator->() const noexcept
-            {
-                return &_t;
-            }
-
-        private:
-            T const & _t;
-            houseguest::shared_lock_t<MUTEX> _lock;
-        };
+        using read_handle_type = read_handle<T, MUTEX>;
 
         template <typename... Ts>
         threadsafe_object(Ts &&... ts)
@@ -65,14 +75,14 @@ namespace houseguest
 
         auto write()
         {
-            houseguest::unique_lock_t<MUTEX> lock{_m};
-            return write_handle{_t, std::move(lock)};
+            typename write_handle_type::lock_type lock{_m};
+            return write_handle_type{_t, std::move(lock)};
         }
 
         auto read() const
         {
-            houseguest::shared_lock_t<MUTEX> lock{_m};
-            return read_handle{_t, std::move(lock)};
+            typename read_handle_type::lock_type lock{_m};
+            return read_handle_type{_t, std::move(lock)};
         }
 
     private:
