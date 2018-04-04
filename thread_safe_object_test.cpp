@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(ThreadSafeObject, default_ctor)
+TEST(ThreadSafeObject, default_ctor) // NOLINT
 {
     houseguest::threadsafe_object<std::vector<int>> tsv;
     auto handle = tsv.read();
@@ -12,7 +12,7 @@ TEST(ThreadSafeObject, default_ctor)
     ASSERT_EQ(0, handle->size());
 }
 
-TEST(ThreadSafeObject, args_ctor)
+TEST(ThreadSafeObject, args_ctor) // NOLINT
 {
     houseguest::threadsafe_object<std::vector<int>> tsv{10};
     auto handle = tsv.read();
@@ -20,7 +20,7 @@ TEST(ThreadSafeObject, args_ctor)
     ASSERT_EQ(1, handle->size());
 }
 
-TEST(ThreadSafeObject, write_handle)
+TEST(ThreadSafeObject, write_handle) // NOLINT
 {
     houseguest::threadsafe_object<std::vector<int>> tsv;
     auto handle = tsv.write();
