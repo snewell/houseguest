@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#if __cplusplus == 201703L
+#if __cplusplus >= 201703L
 #include <shared_mutex>
 #endif
 
@@ -69,7 +69,7 @@ namespace houseguest
      */
     template <typename MUTEX>
     struct shared_lock
-#if __cplusplus == 201703L
+#if __cplusplus >= 201703L
     {
         using type = std::shared_lock<MUTEX>;
     }
