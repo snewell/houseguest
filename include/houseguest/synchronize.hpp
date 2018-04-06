@@ -94,6 +94,9 @@ namespace houseguest
      *          long as necessary.
      */
     template <typename MUTEX, typename FN>
+#if __cplusplus >= 201703L
+    [[nodiscard]]
+#endif
     auto make_synchronize(MUTEX & m, FN && fn)
     {
         return [&m, fn = std::forward<FN>(fn)](auto &&... args) {
@@ -124,6 +127,9 @@ namespace houseguest
      *          of this function.
      */
     template <typename MUTEX, typename FN>
+#if __cplusplus >= 201703L
+    [[nodiscard]]
+#endif
     auto make_synchronize_unique(MUTEX & m, FN && fn)
     {
         return [&m, fn = std::forward<FN>(fn)](auto &&... args) {
