@@ -106,6 +106,13 @@ namespace houseguest
             assert(_lock.owns_lock());
         }
 
+        read_handle(const read_handle &other)
+          : _t{other._t}
+          , _lock{*(other._lock.mutex())}
+        {
+            assert(_lock.owns_lock());
+        }
+
         /** \brief Retreive a reference to the managed object
          *
          * \return A reference to the managed object
