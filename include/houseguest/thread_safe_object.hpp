@@ -167,7 +167,7 @@ namespace houseguest
          *           via std::forward.
          */
         template <typename... Ts>
-        threadsafe_object(Ts &&... ts)
+        explicit threadsafe_object(Ts &&... ts)
           : _t{std::forward<Ts>(ts)...}
         {
         }
