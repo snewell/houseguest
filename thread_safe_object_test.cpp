@@ -53,16 +53,16 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
 
     std::mutex m;
     auto make_thread_fn = [&m, &tsi](auto &local_promise, auto &local_cv) {
-        return houseguest::make_synchronize_unique(m, [&tsi, &local_promise, &local_cv](auto lock) {
+        return [&tsi, &m, &local_promise, &local_cv]() {
             auto handle = tsi.read();
-            local_promise.set_value();
-            local_cv.wait(lock);
-        });
+            houseguest::synchronize_unique(m, [&local_promise, &local_cv](auto lock) {
+                local_promise.set_value();
+                local_cv.wait(lock);
+            });
+        };
     };
 
     houseguest::synchronize_unique(m, [&make_thread_fn](auto lock) {
-        lock.unlock();
-
         std::promise<void> p1;
         std::promise<void> p2;
         std::condition_variable c1;
@@ -71,6 +71,7 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
         std::thread ts[] = { std::thread{make_thread_fn(p1, c1)},
                              std::thread{make_thread_fn(p2, c2)} };
 
+        lock.unlock();
         p1.get_future().get();
         p2.get_future().get();
         lock.lock();
