@@ -15,6 +15,12 @@ option(HOUSEGUEST_BUILD_DOCS  "Build houseguest's documentation" ON)
 
 enable_testing()
 
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+include(CPack)
+
 if(HOUSEGUEST_BUILD_TESTS)
     find_package(GTest REQUIRED)
     function(create_test_std test_name std_version)
