@@ -21,11 +21,11 @@ namespace houseguest
      *       variables in classes.
      */
     template <typename T, typename MUTEX>
-    class
 #if __cplusplus >= 201703L
-    [[nodiscard]]
+    class [[nodiscard]] write_handle
+#else
+    class write_handle
 #endif
-    write_handle
     {
     public:
         /// \brief The lock required by write_handle
@@ -84,11 +84,11 @@ namespace houseguest
      *       variables in classes.
      */
     template <typename T, typename MUTEX>
-    class
 #if __cplusplus >= 201703L
-    [[nodiscard]]
+    class [[nodiscard]] read_handle
+#else
+    class read_handle
 #endif
-    read_handle
     {
     public:
         /// \brief The lock required by read_handle
@@ -106,7 +106,7 @@ namespace houseguest
             assert(_lock.owns_lock());
         }
 
-        read_handle(const read_handle &other)
+        read_handle(const read_handle & other)
           : _t{other._t}
           , _lock{*(other._lock.mutex())}
         {

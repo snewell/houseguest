@@ -95,9 +95,10 @@ namespace houseguest
      */
     template <typename MUTEX, typename FN>
 #if __cplusplus >= 201703L
-    [[nodiscard]]
-#endif
+    [[nodiscard]] auto make_synchronize(MUTEX & m, FN && fn)
+#else
     auto make_synchronize(MUTEX & m, FN && fn)
+#endif
     {
         return [&m, fn = std::forward<FN>(fn)](auto &&... args) {
             return synchronize(m, fn, std::forward<decltype(args)>(args)...);
@@ -128,9 +129,10 @@ namespace houseguest
      */
     template <typename MUTEX, typename FN>
 #if __cplusplus >= 201703L
-    [[nodiscard]]
-#endif
+    [[nodiscard]] auto make_synchronize_unique(MUTEX & m, FN && fn)
+#else
     auto make_synchronize_unique(MUTEX & m, FN && fn)
+#endif
     {
         return [&m, fn = std::forward<FN>(fn)](auto &&... args) {
             return synchronize_unique(m, fn,

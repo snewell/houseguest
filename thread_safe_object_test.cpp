@@ -52,13 +52,14 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
     houseguest::threadsafe_object<int> tsi;
 
     std::mutex m;
-    auto make_thread_fn = [&m, &tsi](auto &local_promise, auto &local_cv) {
+    auto make_thread_fn = [&m, &tsi](auto & local_promise, auto & local_cv) {
         return [&tsi, &m, &local_promise, &local_cv]() {
             auto handle = tsi.read();
-            houseguest::synchronize_unique(m, [&local_promise, &local_cv](auto lock) {
-                local_promise.set_value();
-                local_cv.wait(lock);
-            });
+            houseguest::synchronize_unique(
+                m, [&local_promise, &local_cv](auto lock) {
+                    local_promise.set_value();
+                    local_cv.wait(lock);
+                });
         };
     };
 
@@ -68,8 +69,8 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
         std::condition_variable c1;
         std::condition_variable c2;
 
-        std::thread ts[] = { std::thread{make_thread_fn(p1, c1)},
-                             std::thread{make_thread_fn(p2, c2)} };
+        std::thread ts[] = {std::thread{make_thread_fn(p1, c1)},
+                            std::thread{make_thread_fn(p2, c2)}};
 
         lock.unlock();
         p1.get_future().get();
@@ -78,9 +79,7 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
         c1.notify_one();
         c2.notify_one();
         lock.unlock();
-        std::for_each(std::begin(ts), std::end(ts), [](auto &t) {
-            t.join();
-        });
+        std::for_each(std::begin(ts), std::end(ts), [](auto & t) { t.join(); });
     });
 }
 
