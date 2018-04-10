@@ -33,20 +33,6 @@ TEST(ThreadSafeObject, write_handle) // NOLINT
     ASSERT_EQ(1, handle->size());
 }
 
-TEST(ThreadSafeObject, multiple_read_handles) // NOLINT
-{
-    houseguest::threadsafe_object<int> tsi;
-    auto handle1 = tsi.read();
-    auto handle2 = tsi.read();
-}
-
-TEST(ThreadSafeObject, copy_read_handles) // NOLINT
-{
-    houseguest::threadsafe_object<int> tsi;
-    auto handle1 = tsi.read();
-    auto handle2{handle1}; // NOLINT
-}
-
 TEST(ThreadSafeObject, multi_thread_read) // NOLINT
 {
     houseguest::threadsafe_object<int> tsi;
