@@ -1,6 +1,8 @@
 #ifndef HOUSEGUEST_SYNCHRONIZE_HPP
 #define HOUSEGUEST_SYNCHRONIZE_HPP 1
 
+#include <type_traits>
+
 #include <houseguest/mutex.hpp>
 
 /** \file
@@ -36,6 +38,10 @@ namespace houseguest
     template <typename MUTEX, typename FN, typename... Ts>
     auto synchronize(MUTEX & m, FN && fn, Ts &&... ts)
     {
+#if __cplusplus >= 201703L
+        static_assert(std::is_invocable_v<FN, Ts...>,
+                      "Incorrect function signature");
+#endif
         houseguest::lock_guard_t<MUTEX> lock{m};
         return fn(std::forward<Ts>(ts)...);
     }
@@ -67,7 +73,14 @@ namespace houseguest
     template <typename MUTEX, typename FN, typename... Ts>
     auto synchronize_unique(MUTEX & m, FN && fn, Ts &&... ts)
     {
-        houseguest::unique_lock_t<MUTEX> lock{m};
+        using lock_t = houseguest::unique_lock_t<MUTEX>;
+        static_assert(std::is_move_constructible<lock_t>::value,
+                      "unique_lock must be move constructable");
+#if __cplusplus >= 201703L
+        static_assert(std::is_invocable_v<FN, lock_t, Ts...>,
+                      "Incorrect function signature");
+#endif
+        lock_t lock{m};
         return fn(std::move(lock), std::forward<Ts>(ts)...);
     }
 

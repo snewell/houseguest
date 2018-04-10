@@ -2,6 +2,7 @@
 #define HOUSEGUEST_THREAD_SAFE_OBJECT_HPP 1
 
 #include <cassert>
+#include <type_traits>
 
 #include <houseguest/mutex.hpp>
 
@@ -30,6 +31,9 @@ namespace houseguest
     public:
         /// \brief The lock required by write_handle
         using lock_type = houseguest::unique_lock_t<MUTEX>;
+
+        static_assert(std::is_move_constructible<lock_type>::value,
+                      "unique_lock must be move constructable");
 
         /** \brief Construct a write handle
          *
@@ -93,6 +97,9 @@ namespace houseguest
     public:
         /// \brief The lock required by read_handle
         using lock_type = houseguest::shared_lock_t<MUTEX>;
+
+        static_assert(std::is_move_constructible<lock_type>::value,
+                      "shared_lock must be move constructable");
 
         /** \brief Construct a read_handle
          *
