@@ -147,7 +147,13 @@ namespace houseguest
      * \tparam MUTEX The mutex to handle locking.  This type must support both
      *               unique and shared locks.
      */
-    template <typename T, typename MUTEX = std::shared_mutex>
+    template <typename T,
+#if __cplusplus >= 201703L
+              typename MUTEX = std::shared_mutex
+#else
+              typename MUTEX = std::shared_timed_mutex
+#endif
+    >
     class threadsafe_object
     {
     public:

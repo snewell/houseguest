@@ -60,6 +60,9 @@ target_include_directories(houseguest INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_compile_features(houseguest INTERFACE
+    cxx_std_14
+)
 
 set(headers
     mutex.hpp
@@ -80,7 +83,7 @@ endforeach()
 create_test(synchronize_test
     synchronize_test.cpp
 )
-create_test_std(thread_safe_object_test 17
+create_test(thread_safe_object_test
     thread_safe_object_test.cpp
 )
 

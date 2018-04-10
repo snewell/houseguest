@@ -2,10 +2,7 @@
 #define HOUSEGUEST_MUTEX_HPP 1
 
 #include <mutex>
-
-#if __cplusplus >= 201703L
 #include <shared_mutex>
-#endif
 
 /** \file
  *
@@ -69,11 +66,9 @@ namespace houseguest
      */
     template <typename MUTEX>
     struct shared_lock
-#if __cplusplus >= 201703L
     {
         using type = std::shared_lock<MUTEX>;
     }
-#endif
     ;
 
     /// \brief A convenience type for working with shared_lock
