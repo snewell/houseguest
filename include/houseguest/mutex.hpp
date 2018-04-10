@@ -61,8 +61,6 @@ namespace houseguest
      * (unique_lock).
      *
      * \tparam MUTEX The mutex type to specialize for
-     *
-     * \note C++14 does not provide a version of shared_lock.
      */
     template <typename MUTEX>
     struct shared_lock
