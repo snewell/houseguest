@@ -66,6 +66,7 @@ target_compile_features(houseguest INTERFACE
 
 set(headers
     mutex.hpp
+    ranged_value.hpp
     synchronize.hpp
     thread_safe_object.hpp
 )
@@ -85,6 +86,9 @@ create_test(synchronize_test
 )
 create_test(thread_safe_object_test
     thread_safe_object_test.cpp
+)
+create_test(ranged_value_test
+    ranged_value_test.cpp
 )
 
 if(HOUSEGUEST_BUILD_DOCS)
