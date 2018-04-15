@@ -65,6 +65,7 @@ target_compile_features(houseguest INTERFACE
 )
 
 set(headers
+    lock.hpp
     mutex.hpp
     ranged_value.hpp
     synchronize.hpp

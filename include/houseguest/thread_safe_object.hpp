@@ -4,6 +4,7 @@
 #include <cassert>
 #include <type_traits>
 
+#include <houseguest/lock.hpp>
 #include <houseguest/mutex.hpp>
 
 namespace houseguest
@@ -44,7 +45,7 @@ namespace houseguest
           : _t{t}
           , _lock{std::move(lock)}
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
         }
 
         /** \brief Retreive a reference to the managed object
@@ -53,7 +54,7 @@ namespace houseguest
          */
         T & operator*() noexcept
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
             return _t;
         }
 
@@ -63,7 +64,7 @@ namespace houseguest
          */
         T * operator->() noexcept
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
             return &_t;
         }
 
@@ -110,7 +111,7 @@ namespace houseguest
           : _t{t}
           , _lock{std::move(lock)}
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
         }
 
         /** \brief Retreive a reference to the managed object
@@ -119,7 +120,7 @@ namespace houseguest
          */
         T const & operator*() const noexcept
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
             return _t;
         }
 
@@ -129,7 +130,7 @@ namespace houseguest
          */
         T const * operator->() const noexcept
         {
-            assert(_lock.owns_lock());
+            assert(houseguest::lock<lock_type>::owns_lock(_lock));
             return &_t;
         }
 
@@ -147,13 +148,7 @@ namespace houseguest
      * \tparam MUTEX The mutex to handle locking.  This type must support both
      *               unique and shared locks.
      */
-    template <typename T,
-#if __cplusplus >= 201703L
-              typename MUTEX = std::shared_mutex
-#else
-              typename MUTEX = std::shared_timed_mutex
-#endif
-              >
+    template <typename T, typename MUTEX = houseguest::shared_mutex>
     class threadsafe_object
     {
     public:

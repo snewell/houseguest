@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-#include <houseguest/mutex.hpp>
+#include <houseguest/lock.hpp>
 
 /** \file
  *
