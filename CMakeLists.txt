@@ -22,6 +22,23 @@ set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 include(CPack)
 
 if(HOUSEGUEST_BUILD_TESTS)
+    if(NOT HOUSEGUEST_MAXIMUM_TEST_STANDARD)
+        set(HOUSEGUEST_MAXIMUM_TEST_STANDARD 17
+            CACHE STRING "The maximum C++ standard to use for tests (default: 17)"
+        )
+    endif()
+
+    foreach(supported_version IN ITEMS 14 17)
+        if(${supported_version} LESS_EQUAL ${HOUSEGUEST_MAXIMUM_TEST_STANDARD})
+            message(STATUS "Enabling C++${supported_version} tests")
+            list(APPEND test_standards ${supported_version})
+        endif()
+    endforeach()
+
+    if(NOT test_standards)
+        message(WARNING "No supported standards for tests")
+    endif()
+
     find_package(GTest REQUIRED)
     function(create_test_std test_name std_version)
         set(real_name "${test_name}-${std_version}")
@@ -44,7 +61,7 @@ if(HOUSEGUEST_BUILD_TESTS)
         )
     endfunction()
     function(create_test test_name)
-        foreach(std_version IN ITEMS 14 17)
+        foreach(std_version IN LISTS test_standards)
             create_test_std(${test_name} ${std_version} ${ARGN})
         endforeach()
     endfunction()
