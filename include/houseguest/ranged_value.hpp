@@ -52,7 +52,7 @@ namespace houseguest
     template <typename T, T MIN, T MAX>
     struct ranged_value
     {
-        static_assert(MIN < MAX, "Out of range");
+        static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
         using underlying_type = T;
@@ -131,7 +131,7 @@ namespace houseguest
 
         void validate_max(T value)
         {
-            if(value >= MAX)
+            if(value > MAX)
             {
                 throw std::system_error{
                     make_error_code(ranged_value_error::above_max)};

@@ -4,9 +4,9 @@
 
 namespace
 {
-    using two_digit_int = houseguest::ranged_value<int, 10, 100>;
+    using two_digit_int = houseguest::ranged_value<int, 10, 99>;
 
-    using fifties_int = houseguest::ranged_value<int, 50, 60>;
+    using fifties_int = houseguest::ranged_value<int, 50, 59>;
 } // namespace
 
 TEST(RangedValue, good_min) // NOLINT
