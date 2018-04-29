@@ -57,7 +57,7 @@ namespace houseguest
 
         using underlying_type = T;
 
-        explicit ranged_value(T value)
+        explicit constexpr ranged_value(T value)
           : _value{value}
         {
             validate_min(_value);
@@ -65,7 +65,7 @@ namespace houseguest
         }
 
         template <T OTHER_MIN, T OTHER_MAX>
-        explicit ranged_value(
+        explicit constexpr ranged_value(
             ranged_value<T, OTHER_MIN, OTHER_MAX> const & other)
           : _value{static_cast<T>(other)}
         {
