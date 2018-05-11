@@ -139,6 +139,7 @@ create_test(thread_safe_object_test
 )
 create_test(bounded_value_test
     bounded_value_test.cpp
+    clamped_value_test.cpp
 )
 
 add_subdirectory(bad_bounded_value_tests)

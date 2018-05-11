@@ -1,6 +1,10 @@
 #ifndef HOUSEGUEST_BOUNDED_VALUE_HPP
 #define HOUSEGUEST_BOUNDED_VALUE_HPP 1
 
+#if __cplusplus >= 201703L
+#include <algorithm>
+#endif
+
 #include <system_error>
 #include <tuple>
 #include <type_traits>
@@ -44,7 +48,7 @@ namespace houseguest
         }
     };
 
-    std::error_code make_error_code(bounded_value_error error)
+    inline std::error_code make_error_code(bounded_value_error error)
     {
         static bounded_value_error_category const category_instance{};
         return std::error_code{static_cast<int>(error), category_instance};
@@ -165,11 +169,31 @@ namespace houseguest
 
         // Make sure this optimization is turned on
         static_assert(!std::is_empty<VALIDATOR>::value ||
-                       (sizeof(storage) == sizeof(T)),
+                          (sizeof(storage) == sizeof(T)),
                       "Non-empty validator is impacting size");
 
         storage _data;
     };
+
+    template <typename T, T MIN, T MAX>
+    struct clamping_validator
+    {
+        static_assert(MIN <= MAX, "Out of range");
+        static_assert(std::is_integral<T>::value, "T must be integral");
+
+        T operator()(T value)
+        {
+#if __cplusplus >= 201703L
+            return std::clamp(value, MIN, MAX);
+#else
+            return (value < MIN) ? MIN : (value > MAX) ? MAX : value;
+#endif
+        }
+    };
+
+    template <typename T, T MIN, T MAX>
+    using clamped_value =
+        bounded_value<T, MIN, MAX, clamping_validator<T, MIN, MAX>>;
 } // namespace houseguest
 
 namespace std
