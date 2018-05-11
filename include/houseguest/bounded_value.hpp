@@ -2,6 +2,7 @@
 #define HOUSEGUEST_BOUNDED_VALUE_HPP 1
 
 #include <system_error>
+#include <tuple>
 #include <type_traits>
 
 namespace houseguest
@@ -50,78 +51,19 @@ namespace houseguest
     }
 
     template <typename T, T MIN, T MAX>
-    struct bounded_value
+    struct exception_validator
     {
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
-        using underlying_type = T;
-
-        explicit constexpr bounded_value(T value)
-          : _value{validate(value)}
-        {
-        }
-
-        template <T OTHER_MIN, T OTHER_MAX>
-        explicit constexpr bounded_value(
-            bounded_value<T, OTHER_MIN, OTHER_MAX> const & other)
-          : _value{validate(static_cast<T>(other))}
-        {
-            static_assert(MIN <= OTHER_MAX, "Out of range");
-            static_assert(MAX >= OTHER_MIN, "Out of range");
-        }
-
-        constexpr operator T() const noexcept
-        {
-            return _value;
-        }
-
-        friend constexpr bool operator==(bounded_value<T, MIN, MAX> const & lhs,
-                                         bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value == rhs._value;
-        }
-
-        friend constexpr bool operator!=(bounded_value<T, MIN, MAX> const & lhs,
-                                         bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value != rhs._value;
-        }
-
-        friend constexpr bool operator<(bounded_value<T, MIN, MAX> const & lhs,
-                                        bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value < rhs._value;
-        }
-
-        friend constexpr bool operator<=(bounded_value<T, MIN, MAX> const & lhs,
-                                         bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value <= rhs._value;
-        }
-
-        friend constexpr bool operator>(bounded_value<T, MIN, MAX> const & lhs,
-                                        bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value > rhs._value;
-        }
-
-        friend constexpr bool operator>=(bounded_value<T, MIN, MAX> const & lhs,
-                                         bounded_value<T, MIN, MAX> const & rhs)
-        {
-            return lhs._value >= rhs._value;
-        }
-
-    private:
-        T _value;
-
-        T validate(T value)
+        T operator()(T value)
         {
             validate_min(value);
             validate_max(value);
             return value;
         }
 
+    private:
         void validate_min(T value)
         {
             if(value < MIN)
@@ -139,6 +81,94 @@ namespace houseguest
                     make_error_code(bounded_value_error::above_max)};
             }
         }
+    };
+
+    template <typename T, T MIN, T MAX,
+              typename VALIDATOR = exception_validator<T, MIN, MAX>>
+    struct bounded_value
+    {
+        static_assert(MIN <= MAX, "Out of range");
+        static_assert(std::is_integral<T>::value, "T must be integral");
+
+        using underlying_type = T;
+
+        explicit constexpr bounded_value(T value,
+                                         VALIDATOR validator = VALIDATOR{})
+          : _data{std::make_tuple(std::move(validator), value)}
+        {
+            std::get<1>(_data) = std::get<0>(_data)(std::get<1>(_data));
+        }
+
+        template <T OTHER_MIN, T OTHER_MAX, typename OTHER_VALIDATOR>
+        explicit constexpr bounded_value(
+            bounded_value<T, OTHER_MIN, OTHER_MAX, OTHER_VALIDATOR> const &
+                other,
+            VALIDATOR validator = VALIDATOR{})
+          : _data{std::make_tuple(std::move(validator), static_cast<T>(other))}
+        {
+            static_assert(MIN <= OTHER_MAX, "Out of range");
+            static_assert(MAX >= OTHER_MIN, "Out of range");
+            std::get<1>(_data) = std::get<0>(_data)(std::get<1>(_data));
+        }
+
+        constexpr operator T() const noexcept
+        {
+            return std::get<1>(_data);
+        }
+
+        friend constexpr bool
+        operator==(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) == std::get<1>(rhs._data);
+        }
+
+        friend constexpr bool
+        operator!=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) != std::get<1>(rhs._data);
+        }
+
+        friend constexpr bool
+        operator<(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) < std::get<1>(rhs._data);
+        }
+
+        friend constexpr bool
+        operator<=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) <= std::get<1>(rhs._data);
+        }
+
+        friend constexpr bool
+        operator>(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) > std::get<1>(rhs._data);
+        }
+
+        friend constexpr bool
+        operator>=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+        {
+            return std::get<1>(lhs._data) >= std::get<1>(rhs._data);
+        }
+
+    private:
+        // Using a tuple means the compiler should optimize away any storage
+        // for empty VALIDATOR types.  Compiler Explorer seems to verify this.
+        using storage = std::tuple<VALIDATOR, T>;
+
+        // Make sure this optimization is turned on
+        static_assert(!std::is_empty<VALIDATOR>::value ||
+                       (sizeof(storage) == sizeof(T)),
+                      "Non-empty validator is impacting size");
+
+        storage _data;
     };
 } // namespace houseguest
 
