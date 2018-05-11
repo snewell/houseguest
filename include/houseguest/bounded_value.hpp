@@ -87,6 +87,46 @@ namespace houseguest
         }
     };
 
+    namespace internal
+    {
+        template <typename T, typename VALIDATOR>
+        struct bounded_value_storage
+        {
+            bounded_value_storage(T value, VALIDATOR validator)
+              : _data{std::make_tuple(std::move(value), std::move(validator))}
+            {
+            }
+
+            constexpr T & value() noexcept
+            {
+                return std::get<0>(_data);
+            }
+
+            constexpr T value() const noexcept
+            {
+                return std::get<0>(_data);
+            }
+
+            constexpr VALIDATOR & validator() noexcept
+            {
+                return std::get<1>(_data);
+            }
+
+        private:
+            // Using a tuple means the compiler should optimize away any
+            // storage for empty VALIDATOR types.  Compiler Explorer seems to
+            // verify this.
+            using storage = std::tuple<T, VALIDATOR>;
+
+            // make sure this optimization is turned on
+            static_assert(!std::is_empty<VALIDATOR>::value ||
+                              (sizeof(storage) == sizeof(T)),
+                          "Non-empty validator is impacting size");
+
+            storage _data;
+        };
+    } // namespace internal
+
     template <typename T, T MIN, T MAX,
               typename VALIDATOR = exception_validator<T, MIN, MAX>>
     struct bounded_value
@@ -98,9 +138,9 @@ namespace houseguest
 
         explicit constexpr bounded_value(T value,
                                          VALIDATOR validator = VALIDATOR{})
-          : _data{std::make_tuple(std::move(validator), value)}
+          : _data{value, std::move(validator)}
         {
-            std::get<1>(_data) = std::get<0>(_data)(std::get<1>(_data));
+            _data.value() = _data.validator()(_data.value());
         }
 
         template <T OTHER_MIN, T OTHER_MAX, typename OTHER_VALIDATOR>
@@ -109,71 +149,62 @@ namespace houseguest
                 other,
             VALIDATOR validator =
                 VALIDATOR{}) noexcept(noexcept(validator(static_cast<T>(other))))
-          : _data{std::make_tuple(std::move(validator), static_cast<T>(other))}
+          : _data{static_cast<T>(other), std::move(validator)}
         {
             static_assert(MIN <= OTHER_MAX, "Out of range");
             static_assert(MAX >= OTHER_MIN, "Out of range");
-            std::get<1>(_data) = std::get<0>(_data)(std::get<1>(_data));
+            _data.value() = _data.validator()(_data.value());
         }
 
         constexpr operator T() const noexcept
         {
-            return std::get<1>(_data);
+            return _data.value();
         }
 
         friend constexpr bool
         operator==(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) == std::get<1>(rhs._data);
+            return lhs._data.value() == rhs._data.value();
         }
 
         friend constexpr bool
         operator!=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) != std::get<1>(rhs._data);
+            return lhs._data.value() != rhs._data.value();
         }
 
         friend constexpr bool
         operator<(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) < std::get<1>(rhs._data);
+            return lhs._data.value() < rhs._data.value();
         }
 
         friend constexpr bool
         operator<=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) <= std::get<1>(rhs._data);
+            return lhs._data.value() <= rhs._data.value();
         }
 
         friend constexpr bool
         operator>(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) > std::get<1>(rhs._data);
+            return lhs._data.value() > rhs._data.value();
         }
 
         friend constexpr bool
         operator>=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs)
+                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
         {
-            return std::get<1>(lhs._data) >= std::get<1>(rhs._data);
+            return lhs._data.value() >= rhs._data.value();
         }
 
     private:
-        // Using a tuple means the compiler should optimize away any storage
-        // for empty VALIDATOR types.  Compiler Explorer seems to verify this.
-        using storage = std::tuple<VALIDATOR, T>;
-
-        // Make sure this optimization is turned on
-        static_assert(!std::is_empty<VALIDATOR>::value ||
-                          (sizeof(storage) == sizeof(T)),
-                      "Non-empty validator is impacting size");
-
-        storage _data;
+        internal::bounded_value_storage<T, VALIDATOR> _data;
     };
 
     template <typename T, T MIN, T MAX>

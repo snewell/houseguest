@@ -76,3 +76,55 @@ TEST(BoundedValue, equal_min_max) // NOLINT
 {
     houseguest::bounded_value<int, 10, 10> boring{10};
 }
+
+TEST(BoundedValue, less_than)
+{
+    two_digit_int a{10};
+    two_digit_int b{20};
+
+    ASSERT_LT(a, b);
+}
+
+TEST(BoundedValue, greater_than)
+{
+    two_digit_int a{10};
+    two_digit_int b{20};
+
+    ASSERT_GT(b, a);
+}
+
+TEST(BoundedValue, less_than_equal)
+{
+    two_digit_int a{10};
+    two_digit_int b{20};
+    two_digit_int c{20};
+
+    ASSERT_LE(a, b);
+    ASSERT_LE(b, c);
+}
+
+TEST(BoundedValue, greater_than_equal)
+{
+    two_digit_int a{10};
+    two_digit_int b{20};
+    two_digit_int c{20};
+
+    ASSERT_GE(b, a);
+    ASSERT_GE(b, c);
+}
+
+TEST(BoundedValue, equal)
+{
+    two_digit_int a{20};
+    two_digit_int b{20};
+
+    ASSERT_EQ(a, b);
+}
+
+TEST(BoundedValue, not_equal)
+{
+    two_digit_int a{10};
+    two_digit_int b{20};
+
+    ASSERT_NE(a, b);
+}
