@@ -60,7 +60,7 @@ namespace houseguest
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
-        T operator()(T value)
+        constexpr T operator()(T value) const
         {
             validate_min(value);
             validate_max(value);
@@ -68,7 +68,7 @@ namespace houseguest
         }
 
     private:
-        void validate_min(T value)
+        constexpr void validate_min(T value) const
         {
             if(value < MIN)
             {
@@ -77,7 +77,7 @@ namespace houseguest
             }
         }
 
-        void validate_max(T value)
+        constexpr void validate_max(T value) const
         {
             if(value > MAX)
             {
@@ -107,7 +107,8 @@ namespace houseguest
         explicit constexpr bounded_value(
             bounded_value<T, OTHER_MIN, OTHER_MAX, OTHER_VALIDATOR> const &
                 other,
-            VALIDATOR validator = VALIDATOR{})
+            VALIDATOR validator =
+                VALIDATOR{}) noexcept(noexcept(validator(static_cast<T>(other))))
           : _data{std::make_tuple(std::move(validator), static_cast<T>(other))}
         {
             static_assert(MIN <= OTHER_MAX, "Out of range");
@@ -181,7 +182,7 @@ namespace houseguest
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
-        T operator()(T value)
+        constexpr T operator()(T value) const noexcept
         {
 #if __cplusplus >= 201703L
             return std::clamp(value, MIN, MAX);
