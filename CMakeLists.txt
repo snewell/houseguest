@@ -40,8 +40,8 @@ if(HOUSEGUEST_BUILD_TESTS)
     endif()
 
     find_package(GTest REQUIRED)
-    function(create_test_std test_name std_version)
-        set(real_name "${test_name}-${std_version}")
+
+    function(create_test_build real_name std_version)
         add_executable(${real_name} ${ARGN})
         target_link_libraries(${real_name} PUBLIC
             houseguest
@@ -56,19 +56,51 @@ if(HOUSEGUEST_BUILD_TESTS)
         target_compile_features(${real_name} PRIVATE
             cxx_std_${std_version}
         )
+    endfunction()
+
+    function(create_test_std test_name std_version)
+        set(real_name "${test_name}-${std_version}")
+        create_test_build(${real_name} ${std_version} ${ARGN})
         add_test(NAME ${real_name}
             COMMAND ${real_name} "--gtest_output=xml:${CMAKE_CURRENT_BINARY_DIR}/${real_name}_results.xml"
         )
     endfunction()
+
     function(create_test test_name)
         foreach(std_version IN LISTS test_standards)
             create_test_std(${test_name} ${std_version} ${ARGN})
+        endforeach()
+    endfunction()
+
+    function(create_failed_build_test_std test_name std_version)
+        set(real_name "${test_name}-${std_version}")
+        create_test_build(${real_name} ${std_version} ${ARGN})
+        add_test(NAME ${real_name}
+            COMMAND ${CMAKE_COMMAND} --build . --target ${real_name}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        )
+        set_target_properties(${real_name} PROPERTIES
+            EXCLUDE_FROM_ALL TRUE
+            EXCLUDE_FROM_DEFAULT_BUILD TRUE
+        )
+        set_tests_properties(${real_name} PROPERTIES
+            WILL_FAIL TRUE
+        )
+    endfunction()
+
+    function(create_failed_build_test test_name)
+        foreach(std_version IN LISTS test_standards)
+            create_failed_build_test_std(${test_name} ${std_version} ${ARGN})
         endforeach()
     endfunction()
 else()
     function(create_test_std test_name std_version)
     endfunction()
     function(create_test test_name)
+    endfunction()
+    function(create_failed_build_test_std test_name std_version)
+    endfunction()
+    function(create_failed_build_test test_name)
     endfunction()
 endif()
 
@@ -108,6 +140,8 @@ create_test(thread_safe_object_test
 create_test(ranged_value_test
     ranged_value_test.cpp
 )
+
+add_subdirectory(bad_ranged_value_tests)
 
 if(HOUSEGUEST_BUILD_DOCS)
     find_program(DOXYGEN "doxygen")

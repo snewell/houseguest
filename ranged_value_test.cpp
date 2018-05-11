@@ -72,26 +72,7 @@ TEST(RangedValue, bad_convert) // NOLINT
     }
 }
 
-// everything after this should fail to compile due to static_asserts
-#if 0
-TEST(RangedValue, invalid_range) // NOLINT
+TEST(RangedValue, equal_min_max) // NOLINT
 {
-    houseguest::ranged_value<int, 10, 10> invalid{10};
+    houseguest::ranged_value<int, 10, 10> boring{10};
 }
-#endif
-
-#if 0
-TEST(RangedValue, invalid_conversion_max) // NOLINT
-{
-    houseguest::ranged_value<int, 1, 100> positive{52};
-    houseguest::ranged_value<int, -100, 0> negative{positive};
-}
-#endif
-
-#if 0
-TEST(RangedValue, invalid_conversion_min) // NOLINT
-{
-    houseguest::ranged_value<int, -100, 0> negative{-52};
-    houseguest::ranged_value<int, 1, 100> positive{negative};
-}
-#endif
