@@ -114,9 +114,9 @@ target_compile_features(houseguest INTERFACE
 )
 
 set(headers
+    bounded_value.hpp
     lock.hpp
     mutex.hpp
-    ranged_value.hpp
     synchronize.hpp
     thread_safe_object.hpp
 )
@@ -137,11 +137,11 @@ create_test(synchronize_test
 create_test(thread_safe_object_test
     thread_safe_object_test.cpp
 )
-create_test(ranged_value_test
-    ranged_value_test.cpp
+create_test(bounded_value_test
+    bounded_value_test.cpp
 )
 
-add_subdirectory(bad_ranged_value_tests)
+add_subdirectory(bad_bounded_value_tests)
 
 if(HOUSEGUEST_BUILD_DOCS)
     find_program(DOXYGEN "doxygen")
