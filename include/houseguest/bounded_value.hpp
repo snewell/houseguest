@@ -18,13 +18,16 @@ namespace houseguest
         above_max
     };
 
+    /// \brief an error category_instance for bounded_value
     struct bounded_value_error_category : std::error_category
     {
+        /// \brief get name of error category
         const char * name() const noexcept override
         {
             return "houseguest::bounded_value";
         }
 
+        /// \brief get message from error value
         std::string message(int ev) const override
         {
             switch(static_cast<bounded_value_error>(ev))
@@ -48,18 +51,35 @@ namespace houseguest
         }
     };
 
-    inline std::error_code make_error_code(bounded_value_error error)
+    inline std::error_code
+    make_bounded_value_error_code(bounded_value_error error)
     {
         static bounded_value_error_category const category_instance{};
         return std::error_code{static_cast<int>(error), category_instance};
     }
 
+    /** \brief a validator for bounded_value that emits exceptions for invalid
+     *         values
+     *
+     * \tparam T   the integral type to operate on
+     * \tparam MIN the minimum legal value
+     * \tparam MAX the maximum legal value
+     */
     template <typename T, T MIN, T MAX>
     struct exception_validator
     {
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
+        /** \brief validate a value is between MIN and MAX
+         *
+         * \param value the value to validate
+         *
+         * \retval value The only thing this function will return.
+         *
+         * \throw std::error_code thrown if \a value doesn't fall between MIN
+         *                        and MAX
+         */
         constexpr T operator()(T value) const
         {
             validate_min(value);
@@ -68,45 +88,77 @@ namespace houseguest
         }
 
     private:
+        /** \brief verify \a value is greater-than or equal to MIN
+         *
+         * \param value the value to validate
+         *
+         * \throw std::error_code thrown if \a value is less-than MIN
+         */
         constexpr void validate_min(T value) const
         {
             if(value < MIN)
             {
-                throw std::system_error{
-                    make_error_code(bounded_value_error::below_min)};
+                throw std::system_error{make_bounded_value_error_code(
+                    bounded_value_error::below_min)};
             }
         }
 
+        /** \brief verify \a value is less-than or equal to MAX
+         *
+         * \param value the value to validate
+         *
+         * \throw std::error_code thrown if \a value is greater-than MAX
+         */
         constexpr void validate_max(T value) const
         {
             if(value > MAX)
             {
-                throw std::system_error{
-                    make_error_code(bounded_value_error::above_max)};
+                throw std::system_error{make_bounded_value_error_code(
+                    bounded_value_error::above_max)};
             }
         }
     };
 
     namespace internal
     {
+        /** \brief a type to manage storage for bounded_value
+         *
+         * \internal
+         *
+         * bounded_value_storage acts as an abstraction for bound_value
+         * storage.  This makes it easier to specialize down the road (if
+         * desired), and to easily guarantee no memory overhead for empty
+         * validators (this is the common scenario).
+         *
+         * \tparam T         the integral type being managed
+         * \tparam VALIDATOR the validator being used
+         */
         template <typename T, typename VALIDATOR>
         struct bounded_value_storage
         {
+            /** \brief construct bounded_value_storage
+             *
+             * \param value     the initial value to use
+             * \param validator the validator to own
+             */
             bounded_value_storage(T value, VALIDATOR validator)
               : _data{std::make_tuple(std::move(value), std::move(validator))}
             {
             }
 
+            /// \brief get the stored value
             constexpr T & value() noexcept
             {
                 return std::get<0>(_data);
             }
 
+            /// \brief get the stored value
             constexpr T value() const noexcept
             {
                 return std::get<0>(_data);
             }
 
+            /// \brief get the stored validator
             constexpr VALIDATOR & validator() noexcept
             {
                 return std::get<1>(_data);
@@ -127,6 +179,17 @@ namespace houseguest
         };
     } // namespace internal
 
+    /** \brief An integral type bounded with arbitrary minimum and maximums
+     *
+     * \tparam T         The integral type to use for storage.  T must an
+     *                   integral type.
+     * \tparam MIN       the minimum value for this type
+     * \tparam MAX       the maximum value for this type
+     * \tparam VALIDATOR A type to perform validation of any potential values.
+     *                   VALIDATOR is free to manipulate possible values in any
+     *                   way it wishes, so long as the values it generates fall
+     *                   between MIN and MAX.
+     */
     template <typename T, T MIN, T MAX,
               typename VALIDATOR = exception_validator<T, MIN, MAX>>
     struct bounded_value
@@ -134,8 +197,15 @@ namespace houseguest
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
+        /// \brief the integral type being managed
         using underlying_type = T;
 
+        /** \brief Construct a bounded_value
+         *
+         * \param value     The initial value.  \a value will be passed through
+         *                  \a validator prior to being stored.
+         * \param validator a VALIDATOR to use
+         */
         explicit constexpr bounded_value(T value,
                                          VALIDATOR validator = VALIDATOR{})
           : _data{value, std::move(validator)}
@@ -143,6 +213,25 @@ namespace houseguest
             _data.value() = _data.validator()(_data.value());
         }
 
+        /** \brief Construct a bounded_value from a different bounded_value
+         *
+         * \tparam OTHER_MIN       The minimum value for an \a other.  This
+         *                         must be less-than or equal to MAX.
+         * \tparam OTHER_MAX       The maximum value for an \a other.  This
+         *                         must be greater-than or equal to MIN.
+         * \tparam OTHER_VALIDATOR The VALIDATOR used by \a other.  This
+         *                         parameter is unused beyond matching
+         *                         arbitrary bound_values.
+         *
+         * \param other     A bounded_value to construct from.  \a other must
+         *                  be bounded in a way that's compatible with the
+         *                  bounded_value being constructed (i.e., there's at
+         *                  least some overlap between valid ranges).
+         *                  \a other's value will be passed through
+         *                  \a validator.
+         * \param validator a VALIDATOR to use for the constructed
+         *                  bounded_value
+         */
         template <T OTHER_MIN, T OTHER_MAX, typename OTHER_VALIDATOR>
         explicit constexpr bounded_value(
             bounded_value<T, OTHER_MIN, OTHER_MAX, OTHER_VALIDATOR> const &
@@ -156,11 +245,13 @@ namespace houseguest
             _data.value() = _data.validator()(_data.value());
         }
 
+        /// \brief access the raw value
         constexpr operator T() const noexcept
         {
             return _data.value();
         }
 
+        /// \cond false
         friend constexpr bool
         operator==(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
                    bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
@@ -202,17 +293,32 @@ namespace houseguest
         {
             return lhs._data.value() >= rhs._data.value();
         }
+        /// \endcond
 
     private:
         internal::bounded_value_storage<T, VALIDATOR> _data;
     };
 
+    /** \brief a validator that clamps values between MIN and MAX
+     *
+     * \tparam T   the integral type to operate on
+     * \tparam MIN the minimum legal value
+     * \tparam MAX the maximum legal value
+     */
     template <typename T, T MIN, T MAX>
     struct clamping_validator
     {
         static_assert(MIN <= MAX, "Out of range");
         static_assert(std::is_integral<T>::value, "T must be integral");
 
+        /** \brief clamp \a value to the specified range
+         *
+         * \param value the value to clamp
+         *
+         * \retval MIN   if \a value is less-than MIN
+         * \retval MAX   if \a value is greater-than MAX
+         * \retval value if \a value is between MIN and MAX
+         */
         constexpr T operator()(T value) const noexcept
         {
 #if __cplusplus >= 201703L
