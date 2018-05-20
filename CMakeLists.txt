@@ -115,6 +115,7 @@ target_compile_features(houseguest INTERFACE
 
 set(headers
     bounded_value.hpp
+    constrained_value.hpp
     lock.hpp
     mutex.hpp
     synchronize.hpp

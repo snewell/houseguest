@@ -6,8 +6,8 @@
 #endif
 
 #include <system_error>
-#include <tuple>
-#include <type_traits>
+
+#include <houseguest/constrained_value.hpp>
 
 namespace houseguest
 {
@@ -51,12 +51,31 @@ namespace houseguest
         }
     };
 
-    inline std::error_code
-    make_bounded_value_error_code(bounded_value_error error)
+    namespace internal
     {
-        static bounded_value_error_category const category_instance{};
-        return std::error_code{static_cast<int>(error), category_instance};
-    }
+        inline std::error_code
+        make_bounded_value_error_code(bounded_value_error error)
+        {
+            static bounded_value_error_category const category_instance{};
+            return std::error_code{static_cast<int>(error), category_instance};
+        }
+    } // namespace internal
+
+    template <typename T, T MIN, T MAX>
+    struct bounded_validator
+    {
+        static_assert(MIN <= MAX, "Out of range");
+        static_assert(std::is_integral<T>::value, "T must be integral");
+
+        /// \brief the integral type being validated
+        using type = T;
+
+        /// \brief the manimum value that can be accepted
+        static constexpr T min = MIN;
+
+        /// \brief the maximum value that can be accepted
+        static constexpr T max = MAX;
+    };
 
     /** \brief a validator for bounded_value that emits exceptions for invalid
      *         values
@@ -66,11 +85,8 @@ namespace houseguest
      * \tparam MAX the maximum legal value
      */
     template <typename T, T MIN, T MAX>
-    struct exception_validator
+    struct exception_validator : bounded_validator<T, MIN, MAX>
     {
-        static_assert(MIN <= MAX, "Out of range");
-        static_assert(std::is_integral<T>::value, "T must be integral");
-
         /** \brief validate a value is between MIN and MAX
          *
          * \param value the value to validate
@@ -98,7 +114,7 @@ namespace houseguest
         {
             if(value < MIN)
             {
-                throw std::system_error{make_bounded_value_error_code(
+                throw std::system_error{internal::make_bounded_value_error_code(
                     bounded_value_error::below_min)};
             }
         }
@@ -113,191 +129,22 @@ namespace houseguest
         {
             if(value > MAX)
             {
-                throw std::system_error{make_bounded_value_error_code(
+                throw std::system_error{internal::make_bounded_value_error_code(
                     bounded_value_error::above_max)};
             }
         }
     };
 
-    namespace internal
-    {
-        /** \brief a type to manage storage for bounded_value
-         *
-         * \internal
-         *
-         * bounded_value_storage acts as an abstraction for bound_value
-         * storage.  This makes it easier to specialize down the road (if
-         * desired), and to easily guarantee no memory overhead for empty
-         * validators (this is the common scenario).
-         *
-         * \tparam T         the integral type being managed
-         * \tparam VALIDATOR the validator being used
-         */
-        template <typename T, typename VALIDATOR>
-        struct bounded_value_storage
-        {
-            /** \brief construct bounded_value_storage
-             *
-             * \param value     the initial value to use
-             * \param validator the validator to own
-             */
-            bounded_value_storage(T value, VALIDATOR validator)
-              : _data{std::make_tuple(std::move(value), std::move(validator))}
-            {
-            }
-
-            /// \brief get the stored value
-            constexpr T & value() noexcept
-            {
-                return std::get<0>(_data);
-            }
-
-            /// \brief get the stored value
-            constexpr T value() const noexcept
-            {
-                return std::get<0>(_data);
-            }
-
-            /// \brief get the stored validator
-            constexpr VALIDATOR & validator() noexcept
-            {
-                return std::get<1>(_data);
-            }
-
-        private:
-            // Using a tuple means the compiler should optimize away any
-            // storage for empty VALIDATOR types.  Compiler Explorer seems to
-            // verify this.
-            using storage = std::tuple<T, VALIDATOR>;
-
-            // make sure this optimization is turned on
-            static_assert(!std::is_empty<VALIDATOR>::value ||
-                              (sizeof(storage) == sizeof(T)),
-                          "Non-empty validator is impacting size");
-
-            storage _data;
-        };
-    } // namespace internal
-
-    /** \brief An integral type bounded with arbitrary minimum and maximums
+    /** \brief a constrained_value that requires values fall between MIN and
+     *         MAX
      *
-     * \tparam T         The integral type to use for storage.  T must an
-     *                   integral type.
-     * \tparam MIN       the minimum value for this type
-     * \tparam MAX       the maximum value for this type
-     * \tparam VALIDATOR A type to perform validation of any potential values.
-     *                   VALIDATOR is free to manipulate possible values in any
-     *                   way it wishes, so long as the values it generates fall
-     *                   between MIN and MAX.
+     * \tparam T   the integral type to operate on
+     * \tparam MIN the minimum legal value
+     * \tparam MAX the maximum legal value
      */
-    template <typename T, T MIN, T MAX,
-              typename VALIDATOR = exception_validator<T, MIN, MAX>>
-    struct bounded_value
-    {
-        static_assert(MIN <= MAX, "Out of range");
-        static_assert(std::is_integral<T>::value, "T must be integral");
-
-        /// \brief the integral type being managed
-        using underlying_type = T;
-
-        /** \brief Construct a bounded_value
-         *
-         * \param value     The initial value.  \a value will be passed through
-         *                  \a validator prior to being stored.
-         * \param validator a VALIDATOR to use
-         */
-        explicit constexpr bounded_value(T value,
-                                         VALIDATOR validator = VALIDATOR{})
-          : _data{value, std::move(validator)}
-        {
-            _data.value() = _data.validator()(_data.value());
-        }
-
-        /** \brief Construct a bounded_value from a different bounded_value
-         *
-         * \tparam OTHER_MIN       The minimum value for an \a other.  This
-         *                         must be less-than or equal to MAX.
-         * \tparam OTHER_MAX       The maximum value for an \a other.  This
-         *                         must be greater-than or equal to MIN.
-         * \tparam OTHER_VALIDATOR The VALIDATOR used by \a other.  This
-         *                         parameter is unused beyond matching
-         *                         arbitrary bound_values.
-         *
-         * \param other     A bounded_value to construct from.  \a other must
-         *                  be bounded in a way that's compatible with the
-         *                  bounded_value being constructed (i.e., there's at
-         *                  least some overlap between valid ranges).
-         *                  \a other's value will be passed through
-         *                  \a validator.
-         * \param validator a VALIDATOR to use for the constructed
-         *                  bounded_value
-         */
-        template <T OTHER_MIN, T OTHER_MAX, typename OTHER_VALIDATOR>
-        explicit constexpr bounded_value(
-            bounded_value<T, OTHER_MIN, OTHER_MAX, OTHER_VALIDATOR> const &
-                other,
-            VALIDATOR validator =
-                VALIDATOR{}) noexcept(noexcept(validator(static_cast<T>(other))))
-          : _data{static_cast<T>(other), std::move(validator)}
-        {
-            static_assert(MIN <= OTHER_MAX, "Out of range");
-            static_assert(MAX >= OTHER_MIN, "Out of range");
-            _data.value() = _data.validator()(_data.value());
-        }
-
-        /// \brief access the raw value
-        constexpr operator T() const noexcept
-        {
-            return _data.value();
-        }
-
-        /// \cond false
-        friend constexpr bool
-        operator==(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() == rhs._data.value();
-        }
-
-        friend constexpr bool
-        operator!=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() != rhs._data.value();
-        }
-
-        friend constexpr bool
-        operator<(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() < rhs._data.value();
-        }
-
-        friend constexpr bool
-        operator<=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() <= rhs._data.value();
-        }
-
-        friend constexpr bool
-        operator>(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                  bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() > rhs._data.value();
-        }
-
-        friend constexpr bool
-        operator>=(bounded_value<T, MIN, MAX, VALIDATOR> const & lhs,
-                   bounded_value<T, MIN, MAX, VALIDATOR> const & rhs) noexcept
-        {
-            return lhs._data.value() >= rhs._data.value();
-        }
-        /// \endcond
-
-    private:
-        internal::bounded_value_storage<T, VALIDATOR> _data;
-    };
+    template <typename T, T MIN, T MAX>
+    using bounded_value =
+        constrained_value<T, exception_validator<T, MIN, MAX>>;
 
     /** \brief a validator that clamps values between MIN and MAX
      *
@@ -306,10 +153,8 @@ namespace houseguest
      * \tparam MAX the maximum legal value
      */
     template <typename T, T MIN, T MAX>
-    struct clamping_validator
+    struct clamping_validator : bounded_validator<T, MIN, MAX>
     {
-        static_assert(MIN <= MAX, "Out of range");
-        static_assert(std::is_integral<T>::value, "T must be integral");
 
         /** \brief clamp \a value to the specified range
          *
@@ -329,9 +174,38 @@ namespace houseguest
         }
     };
 
+    /** \brief a constrained_value that clamps all values values between MIN and
+     *         MAX
+     *
+     * \tparam T   the integral type to operate on
+     * \tparam MIN the minimum legal value
+     * \tparam MAX the maximum legal value
+     */
     template <typename T, T MIN, T MAX>
-    using clamped_value =
-        bounded_value<T, MIN, MAX, clamping_validator<T, MIN, MAX>>;
+    using clamped_value = constrained_value<T, clamping_validator<T, MIN, MAX>>;
+
+    // TODO: The is_validator_convertible specializations are *very* incomplete.
+    //       These need to be replaced with something that just operates on
+    //       bounded_validator to avoid exponential specializations.
+
+    /// \brief specialization for exception_validator
+    template <typename T, T MIN, T MAX, T OTHER_MIN, T OTHER_MAX>
+    struct is_validator_convertible<
+        exception_validator<T, MIN, MAX>,
+        exception_validator<T, OTHER_MIN, OTHER_MAX>>
+    {
+        /// \brief validators are convertible if their ranges overlap
+        constexpr static bool value = (MIN <= OTHER_MAX) && (MAX >= OTHER_MIN);
+    };
+
+    /// \brief specialization for clamping_validator
+    template <typename T, T MIN, T MAX, T OTHER_MIN, T OTHER_MAX>
+    struct is_validator_convertible<clamping_validator<T, MIN, MAX>,
+                                    clamping_validator<T, OTHER_MIN, OTHER_MAX>>
+    {
+        /// \brief validators are convertible if their ranges overlap
+        constexpr static bool value = (MIN <= OTHER_MAX) && (MAX >= OTHER_MIN);
+    };
 } // namespace houseguest
 
 namespace std
