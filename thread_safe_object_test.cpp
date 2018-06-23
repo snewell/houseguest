@@ -1,5 +1,6 @@
 #include <houseguest/thread_safe_object.hpp>
 
+#include <algorithm>
 #include <future>
 #include <thread>
 #include <vector>
