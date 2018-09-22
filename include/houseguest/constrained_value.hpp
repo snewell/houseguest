@@ -28,10 +28,9 @@ namespace houseguest
              * \param value     the initial value to use
              * \param validator the validator to own
              */
-            constrained_value_storage(T value, VALIDATOR validator)
-              : _data{std::make_tuple(std::move(value), std::move(validator))}
+            constrained_value_storage(T && value, VALIDATOR && validator)
+              : _data{make_storage(std::forward<T>(value), std::forward<VALIDATOR>(validator))}
             {
-                std::get<0>(_data) = std::get<1>(_data)(std::get<0>(_data));
             }
 
             /// \brief get the stored value
@@ -57,6 +56,12 @@ namespace houseguest
             // storage for empty VALIDATOR types.  Compiler Explorer seems to
             // verify this.
             using storage = std::tuple<T, VALIDATOR>;
+
+            static storage make_storage(T && value, VALIDATOR && validator)
+            {
+                auto temp_value = validator(std::forward<T>(value));
+                return std::make_tuple(std::move(temp_value), std::forward<VALIDATOR>(validator));
+            }
 
             // make sure this optimization is turned on
             static_assert(!std::is_empty<VALIDATOR>::value ||
@@ -115,9 +120,9 @@ namespace houseguest
          *                  \a validator prior to being stored.
          * \param validator a VALIDATOR to use
          */
-        explicit constexpr constrained_value(T value,
-                                             VALIDATOR validator = VALIDATOR{})
-          : _data{value, std::move(validator)}
+        explicit constexpr constrained_value(T && value,
+                                             VALIDATOR && validator = VALIDATOR{})
+          : _data{std::forward<T>(value), std::forward<VALIDATOR>(validator)}
         {
         }
 
@@ -139,9 +144,9 @@ namespace houseguest
         template <typename OTHER_VALIDATOR>
         explicit constexpr constrained_value(
             constrained_value<T, OTHER_VALIDATOR> const & other,
-            VALIDATOR validator =
+            VALIDATOR && validator =
                 VALIDATOR{}) noexcept(noexcept(validator(static_cast<T>(other))))
-          : _data{static_cast<T>(other), std::move(validator)}
+          : _data{static_cast<T>(other), std::forward<VALIDATOR>(validator)}
         {
             static_assert(
                 is_validator_convertible<OTHER_VALIDATOR, VALIDATOR>::value,
