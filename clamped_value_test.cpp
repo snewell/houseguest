@@ -7,21 +7,21 @@ namespace
     using two_digit_int = houseguest::clamped_value<int, 10, 99>;
 } // namespace
 
-TEST(ClampedValue, below_min)
+TEST(ClampedValue, below_min) // NOLINT
 {
     two_digit_int tdi{9};
 
     ASSERT_EQ(10, tdi);
 }
 
-TEST(ClampedValue, above_max)
+TEST(ClampedValue, above_max) // NOLINT
 {
     two_digit_int tdi{100};
 
     ASSERT_EQ(99, tdi);
 }
 
-TEST(ClampedValue, in_range)
+TEST(ClampedValue, in_range) // NOLINT
 {
     two_digit_int tdi{27};
 

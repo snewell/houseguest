@@ -7,6 +7,10 @@ namespace
     using two_digit_int = houseguest::bounded_value<int, 10, 99>;
 
     using fifties_int = houseguest::bounded_value<int, 50, 59>;
+
+    using tens = houseguest::bounded_value<int, 10, 19>;
+
+    using teens = houseguest::bounded_value<int, 13, 19>;
 } // namespace
 
 TEST(BoundedValue, good_min) // NOLINT
@@ -85,7 +89,7 @@ TEST(BoundedValue, less_than)
     ASSERT_LT(a, b);
 }
 
-TEST(BoundedValue, greater_than)
+TEST(BoundedValue, greater_than) // NOLINT
 {
     two_digit_int a{10};
     two_digit_int b{20};
@@ -93,7 +97,7 @@ TEST(BoundedValue, greater_than)
     ASSERT_GT(b, a);
 }
 
-TEST(BoundedValue, less_than_equal)
+TEST(BoundedValue, less_than_equal) // NOLINT
 {
     two_digit_int a{10};
     two_digit_int b{20};
@@ -103,7 +107,7 @@ TEST(BoundedValue, less_than_equal)
     ASSERT_LE(b, c);
 }
 
-TEST(BoundedValue, greater_than_equal)
+TEST(BoundedValue, greater_than_equal) // NOLINT
 {
     two_digit_int a{10};
     two_digit_int b{20};
@@ -113,7 +117,7 @@ TEST(BoundedValue, greater_than_equal)
     ASSERT_GE(b, c);
 }
 
-TEST(BoundedValue, equal)
+TEST(BoundedValue, equal) // NOLINT
 {
     two_digit_int a{20};
     two_digit_int b{20};
@@ -121,10 +125,22 @@ TEST(BoundedValue, equal)
     ASSERT_EQ(a, b);
 }
 
-TEST(BoundedValue, not_equal)
+TEST(BoundedValue, not_equal) // NOLINT
 {
     two_digit_int a{10};
     two_digit_int b{20};
 
     ASSERT_NE(a, b);
+}
+
+TEST(BoundedValue, lower_boundary_convert) // NOLINT
+{
+    tens driving_age{16};
+    teens voting_age{driving_age};
+}
+
+TEST(BoundedValue, upper_boundary_convert) // NOLINT
+{
+    teens voting_age{18};
+    tens driving_age{voting_age};
 }

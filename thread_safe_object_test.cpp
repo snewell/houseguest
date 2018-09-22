@@ -69,15 +69,3 @@ TEST(ThreadSafeObject, multi_thread_read) // NOLINT
         std::for_each(std::begin(ts), std::end(ts), [](auto & t) { t.join(); });
     });
 }
-
-#if 0
-// This test is excluded on purpose.  Because a read_handle is used to call a
-// non-const member function, this code *should not* compile.  This test should
-// be enabled only to verify the code will not compile.
-TEST(ThreadSafeObject, read_handle_failure)
-{
-    houseguest::threadsafe_object<std::vector<int>> tsv;
-    auto handle = tsv.read();
-    handle->push_back(10);
-}
-#endif
