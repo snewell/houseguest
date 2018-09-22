@@ -10,7 +10,8 @@ project("houseguest"
 
 include(GNUInstallDirs)
 
-option(HOUSEGUEST_BUILD_TESTS "Build houseguest's unit tests" ON)
+option(HOUSEGUEST_BUILD_TESTS "Build houseguest's unit tests (requires GTest)" ON)
+option(HOUSEGUEST_NEGATIVE_TESTS "Build houseguest's negative tests (requires HOUSEGUEST_BUILD_TESTS=ON)" ON)
 option(HOUSEGUEST_BUILD_DOCS  "Build houseguest's documentation" ON)
 
 enable_testing()
@@ -72,27 +73,34 @@ if(HOUSEGUEST_BUILD_TESTS)
         endforeach()
     endfunction()
 
-    function(create_failed_build_test_std test_name std_version)
-        set(real_name "${test_name}-${std_version}")
-        create_test_build(${real_name} ${std_version} ${ARGN})
-        add_test(NAME ${real_name}
-            COMMAND ${CMAKE_COMMAND} --build . --target ${real_name}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        )
-        set_target_properties(${real_name} PROPERTIES
-            EXCLUDE_FROM_ALL TRUE
-            EXCLUDE_FROM_DEFAULT_BUILD TRUE
-        )
-        set_tests_properties(${real_name} PROPERTIES
-            WILL_FAIL TRUE
-        )
-    endfunction()
+    if(HOUSEGUEST_NEGATIVE_TESTS)
+        function(create_failed_build_test_std test_name std_version)
+            set(real_name "${test_name}-${std_version}")
+            create_test_build(${real_name} ${std_version} ${ARGN})
+            add_test(NAME ${real_name}
+                COMMAND ${CMAKE_COMMAND} --build . --target ${real_name}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            )
+            set_target_properties(${real_name} PROPERTIES
+                EXCLUDE_FROM_ALL TRUE
+                EXCLUDE_FROM_DEFAULT_BUILD TRUE
+            )
+            set_tests_properties(${real_name} PROPERTIES
+                WILL_FAIL TRUE
+            )
+        endfunction()
 
-    function(create_failed_build_test test_name)
-        foreach(std_version IN LISTS test_standards)
-            create_failed_build_test_std(${test_name} ${std_version} ${ARGN})
-        endforeach()
-    endfunction()
+        function(create_failed_build_test test_name)
+            foreach(std_version IN LISTS test_standards)
+                create_failed_build_test_std(${test_name} ${std_version} ${ARGN})
+            endforeach()
+        endfunction()
+    else()
+        function(create_failed_build_test_std test_name std_version)
+        endfunction()
+        function(create_failed_build_test test_name)
+        endfunction()
+    endif()
 else()
     function(create_test_std test_name std_version)
     endfunction()
