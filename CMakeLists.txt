@@ -188,7 +188,7 @@ export(TARGETS
 )
 install(EXPORT
         HouseguestConfig
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/Houseguest/cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/Houseguest/cmake"
     NAMESPACE Houseguest::
 )
 
